@@ -7,6 +7,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tangpenghui.metronome.MetronomeApp
 import com.tangpenghui.metronome.R
@@ -37,6 +38,7 @@ class MetronomeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "onCreate: initializing service")
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Metronome:audio")
         wakeLock?.setReferenceCounted(false)
@@ -47,6 +49,7 @@ class MetronomeService : Service() {
         mediaSession = MetronomeMediaSession(this, scope)
         mediaSession.initialize(controller)
         observeStateForNotification()
+        Log.d(TAG, "onCreate: service initialized OK")
     }
 
     private fun onSessionEnd(durationSec: Int, mode: TimerMode, completed: Boolean) {
@@ -134,6 +137,7 @@ class MetronomeService : Service() {
 
     companion object {
         const val NOTIFICATION_ID = 1001
+        private const val TAG = "MetronomeService"
 
         fun start(context: Context) {
             val intent = Intent(context, MetronomeService::class.java)

@@ -1,5 +1,6 @@
 package com.tangpenghui.metronome.controller
 
+import android.util.Log
 import com.tangpenghui.metronome.audio.AudioEngine
 import com.tangpenghui.metronome.engine.TimerEngine
 import com.tangpenghui.metronome.engine.TimerSnapshot
@@ -14,6 +15,7 @@ class MetronomeController(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val onSessionEnd: (durationSec: Int, mode: TimerMode, completed: Boolean) -> Unit = { _, _, _ -> }
 ) {
+    companion object { private const val TAG = "MetronomeCtrl" }
     private val _state = MutableStateFlow(MetronomeState())
     val state: StateFlow<MetronomeState> = _state.asStateFlow()
 
@@ -24,13 +26,21 @@ class MetronomeController(
 
     fun start() {
         if (_state.value.runState == RunState.RUNNING) return
+        Log.d(TAG, "start: setting RUNNING")
         _state.value = _state.value.copy(runState = RunState.RUNNING)
-        audio.start()
+        try {
+            audio.start()
+            Log.d(TAG, "start: audio started OK")
+        } catch (e: Exception) {
+            Log.e(TAG, "start: audio failed", e)
+        }
+        Log.d(TAG, "start: starting timer")
         timer.start(scope) { snap -> onTimerTick(snap) }
     }
 
     fun pause() {
         if (_state.value.runState != RunState.RUNNING) return
+        Log.d(TAG, "pause")
         _state.value = _state.value.copy(runState = RunState.PAUSED)
         audio.pause()
         timer.stop()
@@ -39,6 +49,7 @@ class MetronomeController(
     fun stop() {
         val current = _state.value
         if (current.runState == RunState.STOPPED) return
+        Log.d(TAG, "stop: elapsed=${current.timeElapsedSec}")
         val elapsed = current.timeElapsedSec
         timer.stop()
         audio.stop()
@@ -74,6 +85,7 @@ class MetronomeController(
     }
 
     private fun onTimerTick(snap: TimerSnapshot) {
+        Log.d(TAG, "timer tick: left=${snap.timeLeftSec} elapsed=${snap.timeElapsedSec}")
         _state.value = _state.value.copy(
             timeLeftSec = snap.timeLeftSec,
             timeElapsedSec = snap.timeElapsedSec,
