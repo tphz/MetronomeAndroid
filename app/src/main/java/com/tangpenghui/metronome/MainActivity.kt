@@ -6,9 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.PowerManager
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +51,10 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { }
 
+    private val batteryOptimizationLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { checkBatteryOptimization() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -60,9 +68,27 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        checkBatteryOptimization()
+
         setContent {
             MetronomeTheme {
                 AppRoot(binderProvider = { binder })
+            }
+        }
+    }
+
+    private fun checkBatteryOptimization() {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            try {
+                batteryOptimizationLauncher.launch(intent)
+            } catch (_: Throwable) {
+                Toast.makeText(this,
+                    "建议在系统设置中关闭本应用的电池优化，以保障锁屏后节拍器正常运行",
+                    Toast.LENGTH_LONG).show()
             }
         }
     }
