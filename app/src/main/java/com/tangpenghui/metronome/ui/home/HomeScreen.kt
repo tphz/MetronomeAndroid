@@ -27,7 +27,6 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenCalendar: () -> Unit,
-    onExit: () -> Unit = {},
     triggerProvider: () -> BeatType = { BeatType.NONE },
     modifier: Modifier = Modifier
 ) {
@@ -52,7 +51,7 @@ fun HomeScreen(
             Text("${state.bpm} BPM • CADENCE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
         }
 
-        TimeCard(state, beatType, viewModel::start, viewModel::pause, viewModel::stop, onExit)
+        TimeCard(state, beatType, viewModel::start, viewModel::pause, viewModel::stop)
         ModeSelector(state.mode, state.customMinutes, viewModel::setMode)
         BpmSelector(state.bpm, viewModel::setBpm)
         VolumeCard(state.volume, viewModel::setVolume)
@@ -66,8 +65,7 @@ fun HomeScreen(
 @Composable
 private fun TimeCard(
     state: MetronomeState, beatTrigger: BeatType,
-    onStart: () -> Unit, onPause: () -> Unit, onStop: () -> Unit,
-    onExit: () -> Unit
+    onStart: () -> Unit, onPause: () -> Unit, onStop: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = BgCard),
@@ -104,14 +102,14 @@ private fun TimeCard(
                     onClick = onStart,
                     enabled = state.runState != RunState.RUNNING,
                     colors = ButtonDefaults.buttonColors(containerColor = if (state.runState == RunState.RUNNING) SurfaceDim else AccentGreen)
-                ) { Text(if (state.runState == RunState.PAUSED) "继续" else "开始") }
+                ) { Text("开始") }
                 Button(
                     onClick = onPause,
                     enabled = state.runState == RunState.RUNNING,
                     colors = ButtonDefaults.buttonColors(containerColor = if (state.runState == RunState.RUNNING) AccentBlue else SurfaceDim)
                 ) { Text("暂停") }
                 Button(
-                    onClick = { onStop(); onExit() },
+                    onClick = onStop,
                     enabled = state.runState != RunState.STOPPED,
                     colors = ButtonDefaults.buttonColors(containerColor = SurfaceDim)
                 ) { Text("结束") }

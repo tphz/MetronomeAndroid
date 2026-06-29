@@ -122,8 +122,6 @@ private fun AppRoot(binder: MetronomeBinder?) {
 
     NavHost(navController, startDestination = "home") {
         composable("home") {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            val activity = context as ComponentActivity
             val triggerProvider: () -> BeatType = {
                 val raw = binder.controller().audioEngine.visualTrigger
                 when (raw) {
@@ -135,7 +133,6 @@ private fun AppRoot(binder: MetronomeBinder?) {
             HomeScreen(
                 viewModel = HomeViewModel(binder),
                 onOpenCalendar = { navController.navigate("calendar") },
-                onExit = { activity.finish() },
                 triggerProvider = triggerProvider
             )
         }
