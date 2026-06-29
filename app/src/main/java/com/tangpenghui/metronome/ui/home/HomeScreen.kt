@@ -154,6 +154,8 @@ private fun ModeSelector(current: TimerMode, customMinutes: Int, onModeChange: (
 
 @Composable
 private fun BpmSelector(bpm: Int, onPreset: (Int) -> Unit) {
+    var isCustomMode by remember { mutableStateOf(bpm !in listOf(120, 150, 180)) }
+
     Card(colors = CardDefaults.cardColors(containerColor = BgCard), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text("步频节拍", fontWeight = FontWeight.Bold, color = TextMuted)
@@ -162,20 +164,28 @@ private fun BpmSelector(bpm: Int, onPreset: (Int) -> Unit) {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 labels.forEachIndexed { i, (label, value) ->
                     SegmentedButton(
-                        selected = if (value == -1) bpm !in listOf(120, 150, 180) else bpm == value,
-                        onClick = { if (value != -1) onPreset(value) },
+                        selected = if (value == -1) isCustomMode else bpm == value,
+                        onClick = {
+                            if (value == -1) {
+                                isCustomMode = true
+                                if (bpm in listOf(120, 150, 180)) onPreset(120)
+                            } else {
+                                isCustomMode = false
+                                onPreset(value)
+                            }
+                        },
                         shape = SegmentedButtonDefaults.itemShape(i, labels.size),
                         colors = SegmentedButtonDefaults.colors(activeContainerColor = AccentGreen)
                     ) { Text(label, fontSize = 12.sp) }
                 }
             }
-            if (bpm !in listOf(120, 150, 180)) {
+            if (isCustomMode) {
                 Spacer(Modifier.height(12.dp))
                 var sliderValue by remember { mutableFloatStateOf(bpm.toFloat()) }
                 Text("自定义步频: ${sliderValue.toInt()} BPM", color = AccentGreen)
                 Slider(value = sliderValue, onValueChange = { sliderValue = it },
                     onValueChangeFinished = { onPreset(sliderValue.toInt()) },
-                    valueRange = 120f..200f, steps = 79)
+                    valueRange = 60f..200f, steps = 139)
             }
         }
     }
