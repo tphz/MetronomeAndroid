@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
+@OptIn(androidx.media3.common.util.UnstableApi::class)
 class MetronomeMediaSession(
     private val context: Context,
     private val scope: CoroutineScope
