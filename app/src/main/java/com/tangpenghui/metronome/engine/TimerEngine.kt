@@ -1,5 +1,6 @@
 package com.tangpenghui.metronome.engine
 
+import android.util.Log
 import kotlinx.coroutines.*
 
 data class TimerSnapshot(
@@ -23,13 +24,16 @@ class TimerEngine(
     var onFinished: (() -> Unit)? = null
 
     private var lastTickNanos: Long = 0L
+    private var elapsedNanos: Long = 0L
     private var job: Job? = null
     private var finishedEmitted = false
 
     fun start(scope: CoroutineScope, onTick: (TimerSnapshot) -> Unit) {
         if (isRunning) return
+        Log.d(TAG, "start: totalDurationSec=$totalDurationSec")
         isRunning = true
         lastTickNanos = timeSource.nanoTime()
+        elapsedNanos = 0L
         finishedEmitted = false
         job = scope.launch {
             while (isActive && isRunning) {
@@ -40,12 +44,16 @@ class TimerEngine(
     }
 
     fun tick(onTick: (TimerSnapshot) -> Unit = {}) {
-        if (!isRunning) return
+        if (!isRunning) {
+            Log.w(TAG, "tick: not running, skip")
+            return
+        }
         val now = timeSource.nanoTime()
-        val dtSec = (now - lastTickNanos).toDouble() / 1_000_000_000.0
+        val dtNanos = now - lastTickNanos
         lastTickNanos = now
+        elapsedNanos += dtNanos
 
-        val newElapsed = (timeElapsedSec + dtSec).toInt()
+        val newElapsed = (elapsedNanos / 1_000_000_000L).toInt()
         timeElapsedSec = newElapsed
 
         if (totalDurationSec > 0) {
@@ -59,6 +67,7 @@ class TimerEngine(
         } else {
             timeLeftSec = 0
         }
+        Log.d(TAG, "tick: elapsed=$newElapsed left=$timeLeftSec")
         onTick(TimerSnapshot(timeLeftSec, timeElapsedSec, totalDurationSec))
     }
 
@@ -68,6 +77,7 @@ class TimerEngine(
         stop()
         timeElapsedSec = 0
         timeLeftSec = if (totalDurationSec == 0) 0 else totalDurationSec
+        elapsedNanos = 0L
         finishedEmitted = false
     }
 
@@ -80,4 +90,6 @@ class TimerEngine(
             timeLeftSec = (sec - timeElapsedSec).coerceAtLeast(0)
         }
     }
+
+    companion object { private const val TAG = "TimerEngine" }
 }
