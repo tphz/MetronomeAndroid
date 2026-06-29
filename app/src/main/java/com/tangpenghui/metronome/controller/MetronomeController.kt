@@ -95,6 +95,8 @@ class MetronomeController(
         onSessionEnd(elapsed, current.mode, true)
     }
 
+    val audioEngine: AudioEngine get() = audio
+
     fun shutdown() {
         timer.stop()
         audio.shutdown()

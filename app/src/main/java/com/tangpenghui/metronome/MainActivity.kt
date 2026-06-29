@@ -23,6 +23,7 @@ import com.tangpenghui.metronome.service.MetronomeBinder
 import com.tangpenghui.metronome.service.MetronomeService
 import com.tangpenghui.metronome.ui.calendar.CalendarScreen
 import com.tangpenghui.metronome.ui.calendar.CalendarViewModel
+import com.tangpenghui.metronome.audio.BeatType
 import com.tangpenghui.metronome.ui.home.HomeScreen
 import com.tangpenghui.metronome.ui.home.HomeViewModel
 import com.tangpenghui.metronome.ui.theme.MetronomeTheme
@@ -84,9 +85,18 @@ private fun AppRoot(binderProvider: () -> MetronomeBinder?) {
 
     NavHost(navController, startDestination = "home") {
         composable("home") {
+            val triggerProvider: () -> BeatType = {
+                val raw = binder.controller().audioEngine.visualTrigger
+                when (raw) {
+                    1 -> BeatType.HEAVY
+                    2 -> BeatType.LIGHT
+                    else -> BeatType.NONE
+                }
+            }
             HomeScreen(
                 viewModel = HomeViewModel(binder),
-                onOpenCalendar = { navController.navigate("calendar") }
+                onOpenCalendar = { navController.navigate("calendar") },
+                triggerProvider = triggerProvider
             )
         }
         composable("calendar") {
