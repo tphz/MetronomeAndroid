@@ -85,6 +85,7 @@ class TimerEngine(
         if (!isRunning) {
             timeLeftSec = if (sec == 0) 0 else sec
             timeElapsedSec = 0
+            elapsedNanos = 0L
         } else {
             timeLeftSec = (sec - timeElapsedSec).coerceAtLeast(0)
         }
