@@ -12,11 +12,17 @@ import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,14 +41,16 @@ import com.tangpenghui.metronome.ui.theme.MetronomeTheme
 class MainActivity : ComponentActivity() {
 
     private var service: MetronomeService? = null
-    private var binder: MetronomeBinder? = null
+    private var binder by mutableStateOf<MetronomeBinder?>(null)
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, ib: IBinder?) {
+            Log.d(TAG, "Service connected")
             val b = ib as? MetronomeBinder ?: return
             binder = b
             service = b.service()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
+            Log.d(TAG, "Service disconnected")
             binder = null; service = null
         }
     }
@@ -72,7 +80,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MetronomeTheme {
-                AppRoot(binderProvider = { binder })
+                AppRoot(binder)
             }
         }
     }
@@ -97,15 +105,18 @@ class MainActivity : ComponentActivity() {
         try { unbindService(serviceConnection) } catch (_: Throwable) {}
         super.onDestroy()
     }
+
+    companion object { private const val TAG = "MainActivity" }
 }
 
 @Composable
-private fun AppRoot(binderProvider: () -> MetronomeBinder?) {
+private fun AppRoot(binder: MetronomeBinder?) {
     val navController = rememberNavController()
-    val binder = binderProvider()
 
     if (binder == null) {
-        androidx.compose.material3.CircularProgressIndicator()
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
         return
     }
 
