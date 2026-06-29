@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:name=".MetronomeApp"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Metronome"
+        android:allowBackup="true">
+        <!-- Activity 和 Service 在后续 Task 添加 -->
+    </application>
+</manifest>
