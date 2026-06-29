@@ -30,10 +30,9 @@ class TimerEngine(
 
     fun start(scope: CoroutineScope, onTick: (TimerSnapshot) -> Unit) {
         if (isRunning) return
-        Log.d(TAG, "start: totalDurationSec=$totalDurationSec")
+        Log.d(TAG, "start: totalDurationSec=$totalDurationSec elapsedNanos=$elapsedNanos")
         isRunning = true
         lastTickNanos = timeSource.nanoTime()
-        elapsedNanos = 0L
         finishedEmitted = false
         job = scope.launch {
             while (isActive && isRunning) {
