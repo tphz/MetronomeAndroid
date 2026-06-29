@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenCalendar: () -> Unit,
+    onExit: () -> Unit = {},
     triggerProvider: () -> BeatType = { BeatType.NONE },
     modifier: Modifier = Modifier
 ) {
@@ -51,7 +52,7 @@ fun HomeScreen(
             Text("${state.bpm} BPM • CADENCE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
         }
 
-        TimeCard(state, beatType, viewModel::start, viewModel::pause, viewModel::stop)
+        TimeCard(state, beatType, viewModel::start, viewModel::pause, viewModel::stop, onExit)
         ModeSelector(state.mode, state.customMinutes, viewModel::setMode)
         BpmSelector(state.bpm, viewModel::setBpm)
         VolumeCard(state.volume, viewModel::setVolume)
@@ -65,12 +66,13 @@ fun HomeScreen(
 @Composable
 private fun TimeCard(
     state: MetronomeState, beatTrigger: BeatType,
-    onStart: () -> Unit, onPause: () -> Unit, onStop: () -> Unit
+    onStart: () -> Unit, onPause: () -> Unit, onStop: () -> Unit,
+    onExit: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = BgCard),
         shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth().height(180.dp)
+        modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -109,7 +111,7 @@ private fun TimeCard(
                     colors = ButtonDefaults.buttonColors(containerColor = if (state.runState == RunState.RUNNING) AccentBlue else SurfaceDim)
                 ) { Text("暂停") }
                 Button(
-                    onClick = onStop,
+                    onClick = { onStop(); onExit() },
                     enabled = state.runState != RunState.STOPPED,
                     colors = ButtonDefaults.buttonColors(containerColor = SurfaceDim)
                 ) { Text("结束") }
