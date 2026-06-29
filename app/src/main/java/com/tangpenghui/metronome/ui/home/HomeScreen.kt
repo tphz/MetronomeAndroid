@@ -18,6 +18,7 @@ import com.tangpenghui.metronome.controller.RunState
 import com.tangpenghui.metronome.controller.TimerMode
 import com.tangpenghui.metronome.ui.theme.AccentBlue
 import com.tangpenghui.metronome.ui.theme.AccentGreen
+import com.tangpenghui.metronome.ui.theme.AccentRed
 import com.tangpenghui.metronome.ui.theme.BgCard
 import com.tangpenghui.metronome.ui.theme.SurfaceDim
 import com.tangpenghui.metronome.ui.theme.TextMuted
@@ -112,7 +113,9 @@ private fun TimeCard(
                 ) { Text("暂停") }
                 Button(
                     onClick = { if (state.runState == RunState.STOPPED) onExit() else onStop() },
-                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceDim)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (state.runState == RunState.STOPPED) AccentRed else SurfaceDim
+                    )
                 ) { Text(if (state.runState == RunState.STOPPED) "退出" else "停止") }
             }
         }
