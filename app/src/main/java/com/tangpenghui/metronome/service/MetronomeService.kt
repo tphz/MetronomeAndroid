@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.tangpenghui.metronome.MetronomeApp
 import com.tangpenghui.metronome.R
@@ -32,9 +33,13 @@ class MetronomeService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val sessionStartMs = AtomicLong(0L)
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Metronome:audio")
+        wakeLock?.setReferenceCounted(false)
         audio = AudioEngine()
         timer = TimerEngine()
         recorder = SessionRecorder(ExerciseRepository(MetronomeDatabase.get(this).sessionDao()))
@@ -75,11 +80,25 @@ class MetronomeService : Service() {
                 nm.notify(NOTIFICATION_ID, buildNotification(
                     st.runState, formatTime(st.timeLeftSec), st.bpm
                 ))
-                if (st.runState == RunState.RUNNING && sessionStartMs.get() == 0L) {
-                    sessionStartMs.set(System.currentTimeMillis() - st.timeElapsedSec * 1000L)
+                when (st.runState) {
+                    RunState.RUNNING -> {
+                        if (sessionStartMs.get() == 0L) {
+                            sessionStartMs.set(System.currentTimeMillis() - st.timeElapsedSec * 1000L)
+                        }
+                        acquireWakeLock()
+                    }
+                    else -> releaseWakeLock()
                 }
             }
         }
+    }
+
+    private fun acquireWakeLock() {
+        wakeLock?.let { if (!it.isHeld) it.acquire() }
+    }
+
+    private fun releaseWakeLock() {
+        wakeLock?.let { if (it.isHeld) it.release() }
     }
 
     private fun buildNotification(state: RunState, timeLeft: String, bpm: Int): Notification {
@@ -108,6 +127,7 @@ class MetronomeService : Service() {
     override fun onDestroy() {
         controller.shutdown()
         mediaSession.release()
+        releaseWakeLock()
         scope.cancel()
         super.onDestroy()
     }
