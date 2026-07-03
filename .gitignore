@@ -9,3 +9,16 @@ captures/
 .cxx/
 *.apk
 *.aab
+
+# Internal docs and plans
+docs/superpowers/
+
+# Test code (keep tests in repo if needed)
+# app/src/test/
+# app/src/androidTest/
+
+# IDE and editor configs
+.superpowers/
+.vscode/
+*.swp
+*.swo
