@@ -10,46 +10,87 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
 
+/**
+ * 高精度音频引擎，负责实现“零漂移”节拍器核心逻辑。
+ *
+ * 使用 [AudioTrack] 的低延迟模式，并通过采样点计数 (Sample-accurate) 机制
+ * 确保节拍在长时间运行下不产生系统时钟抖动带来的误差。
+ *
+ * @param sampleRate 音频采样率 (默认 44100Hz)
+ * @param bpm 初始步频 (BPM)
+ */
+/**
+ * 高精度音频引擎，负责实现“零漂移”节拍器核心逻辑。
+ *
+ * 使用 [AudioTrack] 的低延迟模式，并通过采样点计数 (Sample-accurate) 机制
+ * 确保节拍在长时间运行下不产生系统时钟抖动带来的误差。
+ *
+ * @param sampleRate 音频采样率 (默认 44100Hz)
+ * @param bpm 初始步频 (BPM)
+ */
 class AudioEngine(
     private val sampleRate: Int = 44100,
     bpm: Int = 150
 ) {
+    /** 当前播放音量 (0.0 - 1.0) */
     @Volatile var volume: Float = 0.3f
         private set
 
+    /** 当前步频，修改时会同步更新调度器 */
     @Volatile var bpm: Int = bpm
         set(value) {
             scheduler.bpm = value
             field = scheduler.bpm
         }
 
+    /**
+     * 视觉触发信号。
+     * UI 层通过读取此值来驱动 LED 脉动动画。返回后会自动重置为 0。
+     */
     val visualTrigger: Int
         get() = trigger.getAndSet(0)
 
     private val scheduler = BeatScheduler(sampleRate, bpm)
+    /** 用于向 UI 发送节拍触发信号 (1: 重音/左脚, 2: 轻音/右脚) */
     private val trigger = AtomicInteger(0)
+    /** 当前累计播放的节拍总数 */
     private val beatCount = AtomicLong(0)
+    /** 距离下一个节拍还剩余多少个采样点 (核心：驱动零漂移的关键) */
     private val beatCountdown = AtomicInteger(0)
-    private val isRunning = AtomicInteger(0)
+    /** 引擎运行状态 (1: 运行, 0: 已暂停/停止) */
+    private val isRunning = AtomictingInt(0)
 
+    // 音频合成器与预生成的波形数据
     private val synth = WaveformSynthesizer()
-    private val heavySamples = synth.synthesizeHeavyWoodBlock(sampleRate)
-    private val lightSamples = synth.synthesizeLightWoodBlock(sampleRate)
-    private val endChimeSamples = synth.synthesizeEndChime(sampleRate)
+    private val heavySamples = synth.synthesizeHeavyWoodBlock(sampleRate) // 重音波形
+    private val lightSamples = synth.synthesizeLightWoodBlock(sampleRate) // 轻音波形
+    private val endChimeSamples = synth.synthesizeEndChime(sampleRate)   // 结束提示音
 
+    /**
+     * 表示正在播放中的一个声音实例（如某一次节拍的木鱼声）
+     */
     private data class ActiveSound(
-        val samples: ShortArray,
-        var pointer: Int,
-        var startOffset: Int
+        val samples: ShortArray, // 原始 PCM 数据
+        var pointer: Int,       // 当前播放到的采样点偏移
+        var startOffset: Int    // 该声音在当前音频 Buffer 中的起始位置
     )
 
+    /** 正在进行的活跃声音列表，通过锁保护以实现多线程混音 */
     private val activeSounds = mutableListOf<ActiveSound>()
     private val lock = Any()
 
     private var track: AudioTrack? = null
     private var renderThread: Thread? = null
+    /** 每次渲染循环处理的帧数 */
     private val bufferSizeFrames = 1024
 
+
+    /**
+     * 配置并创建高性能 [AudioTrack] 实例。
+     * 
+     * 使用 {@code PERFORMANCE_MODE_LOW_latency} 以减少音频缓冲延迟，
+     * 并使用 {@code ENCODING_PCM_FLOAT} 以获得更高的动态范围和计算精度。
+     */
     private fun createTrack(): AudioTrack {
         val channelCount = 2
         val minBuf = AudioTrack.getMinBufferSize(
